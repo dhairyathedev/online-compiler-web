@@ -29,7 +29,7 @@ public class Main {
     const modifiedSourceCode = sourceCode.replace(/public\s+class\s+\w+/g, 'public class Main');
 
     try {
-      const compileResponse = await axios.post('http://164.92.69.191:2358/submissions?base64_encoded=true', {
+      const compileResponse = await axios.post('https://api.compiler.dhairyashah.dev/submissions?base64_encoded=true', {
         source_code: btoa(modifiedSourceCode),
         language_id: 62,
         stdin: userInputEnabled && userInput ? btoa(userInput) : '',
@@ -42,7 +42,7 @@ public class Main {
         let runResponse;
         do {
           await new Promise(resolve => setTimeout(resolve, 1000));
-          runResponse = await axios.get(`http://164.92.69.191:2358/submissions/${compileResponse.data.token}?base64_encoded=true`);
+          runResponse = await axios.get(`https://api.compiler.dhairyashah.dev/submissions/${compileResponse.data.token}?base64_encoded=true`);
         } while (runResponse.data.status.id <= 2);
 
         if (runResponse.data.status.id === 3) {
