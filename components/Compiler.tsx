@@ -1,12 +1,12 @@
 "use client";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { PlayIcon, DownloadIcon, CopyIcon, TrashIcon, SettingsIcon, BookOpenIcon } from "lucide-react";
 import axios from "axios";
+import Editor from "@monaco-editor/react";
 
 export function JavaCompiler() {
   const [activeTab, setActiveTab] = useState("output");
@@ -26,11 +26,9 @@ public class Main {
     setIsCompiling(true);
     setOutput("Compiling and running...");
 
-    // Replace class name with Main before sending to backend
     const modifiedSourceCode = sourceCode.replace(/public\s+class\s+\w+/g, 'public class Main');
 
     try {
-      // Compile
       const compileResponse = await axios.post('http://164.92.69.191:2358/submissions?base64_encoded=true', {
         source_code: btoa(modifiedSourceCode),
         language_id: 62,
@@ -40,15 +38,14 @@ public class Main {
       if (compileResponse.data.token) {
         setIsCompiling(false);
         setIsRunning(true);
-        
-        // Run
+
         let runResponse;
         do {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before checking again
+          await new Promise(resolve => setTimeout(resolve, 1000));
           runResponse = await axios.get(`http://164.92.69.191:2358/submissions/${compileResponse.data.token}?base64_encoded=true`);
-        } while (runResponse.data.status.id <= 2); // 1: In Queue, 2: Processing
+        } while (runResponse.data.status.id <= 2);
 
-        if (runResponse.data.status.id === 3) { // Accepted
+        if (runResponse.data.status.id === 3) {
           setOutput(atob(runResponse.data.stdout) || "Program compiled and ran successfully, but produced no output.");
         } else {
           setOutput(`${atob(runResponse.data.compile_output)}`);
@@ -109,11 +106,15 @@ public class Main {
 
       <main className="flex-grow flex flex-col lg:flex-row">
         <div className="flex-1 p-4 border-r">
-          <Textarea
-            className="w-full h-full min-h-[300px] font-mono text-sm"
+          <Editor
+            height="70vh"
+            defaultLanguage="java"
             value={sourceCode}
-            onChange={(e) => setSourceCode(e.target.value)}
-            placeholder="Enter your Java code here..."
+            onChange={(value) => setSourceCode(value || "")}
+            theme="light"
+            options={{
+              fontSize: 14, // Match this to your previous Textarea font size
+            }}
           />
         </div>
         <div className="flex-1 flex flex-col">
@@ -134,11 +135,15 @@ public class Main {
             </div>
             <TabsContent value="input" className="flex-grow p-4">
               {userInputEnabled ? (
-                <Textarea
-                  className="w-full h-full min-h-[200px] font-mono text-sm"
-                  placeholder="Enter input for your program here..."
+                <Editor
+                  height="50vh"
+                  defaultLanguage="text"
                   value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
+                  onChange={(value) => setUserInput(value || "")}
+                  theme="light"
+                  options={{
+                    fontSize: 14, // Match this to your previous Textarea font size
+                  }}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
