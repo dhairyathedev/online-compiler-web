@@ -1,8 +1,6 @@
-import { JavaCompiler } from "@/components/Compiler";
+import Compiler from "@/components/Compiler";
 import Image from "next/image";
 
 export default function Home() {
-  return (
-      <JavaCompiler />
-  );
+  return <Compiler />;
 }
