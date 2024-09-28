@@ -43,13 +43,30 @@ export default function Compiler() {
   const [isCompiling, setIsCompiling] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
 
+  const convertJavaClassName = (code: String) => {
+    const mainClassRegex = /public\s+class\s+(\w+)\s*{[\s\S]*public\s+static\s+void\s+main\s*\(/;
+    const match = code.match(mainClassRegex);
+    if (match && match[1] !== "Main") {
+      return code.replace(
+        new RegExp(`public\\s+class\\s+${match[1]}\\s*{`),
+        'public class Main {'
+      );
+    }
+    return code;
+  };
+
   const handleCompileAndRun = async () => {
     setIsCompiling(true);
     setOutput("Compiling and running...");
 
+    let codeToCompile = sourceCode as any;
+    if (selectedLanguage.name === "Java") {
+      codeToCompile = convertJavaClassName(sourceCode);
+    }
+
     try {
       const compileResponse = await axios.post('https://api.compiler.dhairyashah.dev/submissions?base64_encoded=true', {
-        source_code: btoa(sourceCode),
+        source_code: btoa(codeToCompile),
         language_id: selectedLanguage.id,
         stdin: userInputEnabled && userInputs.length > 0 ? btoa(userInputs.join("\n")) : '',
       });
