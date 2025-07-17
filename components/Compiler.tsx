@@ -7,8 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlayIcon, DownloadIcon, CopyIcon, TrashIcon, PlusIcon, MinusIcon } from "lucide-react";
-import axios from "axios";
 import Editor from "@monaco-editor/react";
+
+// Import the server action
+import { compileAndRunCode } from "@/app/actions/compiler";
 
 const languages = [
   { id: 62, name: "Java", extension: "java", monacoLanguage: "java", defaultCode: `
@@ -43,52 +45,27 @@ export default function Compiler() {
   const [isCompiling, setIsCompiling] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
 
-  const convertJavaClassName = (code: String) => {
-    const mainClassRegex = /public\s+class\s+(\w+)\s*{[\s\S]*public\s+static\s+void\s+main\s*\(/;
-    const match = code.match(mainClassRegex);
-    if (match && match[1] !== "Main") {
-      return code.replace(
-        new RegExp(`public\\s+class\\s+${match[1]}\\s*{`),
-        'public class Main {'
-      );
-    }
-    return code;
-  };
+  // Removed convertJavaClassName as it's now handled server-side
 
   const handleCompileAndRun = async () => {
     setIsCompiling(true);
     setOutput("Compiling and running...");
 
-    let codeToCompile = sourceCode as any;
-    if (selectedLanguage.name === "Java") {
-      codeToCompile = convertJavaClassName(sourceCode);
-    }
-
     try {
-      const compileResponse = await axios.post('https://api.compiler.dhairyashah.dev/submissions?base64_encoded=true', {
-        source_code: btoa(codeToCompile),
-        language_id: selectedLanguage.id,
-        stdin: userInputEnabled && userInputs.length > 0 ? btoa(userInputs.join("\n")) : '',
+      // Call the server action
+      const result = await compileAndRunCode({
+        sourceCode: sourceCode,
+        languageId: selectedLanguage.id,
+        stdin: userInputEnabled && userInputs.length > 0 ? userInputs.join("\n") : '',
+        languageName: selectedLanguage.name, // Pass language name for server-side conversion
       });
 
-      if (compileResponse.data.token) {
-        setIsCompiling(false);
-        setIsRunning(true);
-
-        let runResponse;
-        do {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          runResponse = await axios.get(`https://api.compiler.dhairyashah.dev/submissions/${compileResponse.data.token}?base64_encoded=true`);
-        } while (runResponse.data.status.id <= 2);
-
-        if (runResponse.data.status.id === 3) {
-          setOutput(atob(runResponse.data.stdout) || "Program compiled and ran successfully, but produced no output.");
-        } else {
-          setOutput(`${atob(runResponse.data.compile_output || runResponse.data.stderr)}`);
-        }
+      if (result.error) {
+        setOutput(result.error);
       } else {
-        setOutput("Compilation failed: " + JSON.stringify(compileResponse.data));
+        setOutput(result.output || "");
       }
+
     } catch (error: any) {
       setOutput("Error during compilation or execution: " + error.message);
     }
